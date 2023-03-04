@@ -1,7 +1,6 @@
 package render
 
 import (
-	"errors"
 	"html/template"
 	"log"
 	"net/http"
@@ -9,60 +8,40 @@ import (
 	"path/filepath"
 )
 
-var cache map[string]*template.Template
+var templates = make(map[string]*template.Template)
 
-func InitCache() error{
-	templates, err := CachePageTemplates()
-	if err != nil {
-		return err
-	}
-	cache = templates
-	return nil
-}
 
-func CachePageTemplates() (map[string]*template.Template, error) {
-	var templates = make(map[string]*template.Template)
+func init(){
 
 	projectRoot, err := os.Getwd()
 	if err != nil {
-		return templates, err
+		log.Panicln("failed to initialise project root", err)
 	}
 
 	templatesDir := projectRoot + `\templates`
 	templatesMask := templatesDir + `\[^_]*.html`
 	templateFiles, err := filepath.Glob(templatesMask)
 
+	if err != nil {
+		log.Panicf("failed to glob templates using mask %v. \nError details: %w", templatesMask, err)
+	}
+
 	log.Println("templateFiles", templateFiles)
-
-	if err != nil {
-		return templates, err
-	}
-
-	baseFiles, err := filepath.Glob(templatesDir + `\_base.html`)
-	if err != nil {
-		return templates, err
-	}
-
-	if len(baseFiles) == 0 {
-		return templates, errors.New("no base layout files found")
-	}
-
-	base := baseFiles[0]
 
 	for _, f := range templateFiles {
 		log.Println("caching", f)
-		tp, err := template.ParseFiles(f, base)
+		tp, err := template.ParseFiles(f, templatesDir + `\_base.html`)
+
 		if err != nil {
-			return templates, err
+			log.Panicf("error parsing template %v.\nError details: %w", tp, err)
 		}
 		templates[filepath.Base(f)] = tp
 	}
 
-	return templates, nil
 }
 
 func RenderTemplate(w http.ResponseWriter, t string) {
-	tp, ok := cache[t]
+	tp, ok := templates[t]
 
 	if !ok {
 		log.Panicln("template", t, "was not found in cache!")
@@ -70,7 +49,7 @@ func RenderTemplate(w http.ResponseWriter, t string) {
 
 	err := tp.Execute(w, nil)
 	if err != nil {
-		log.Panicln(err)
+		log.Panicf("error while executing template %v. \nError details: %w", tp, err)
 	}
 
 }
