@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-var templates = make(map[string]*template.Template)
+var cache = make(map[string]*template.Template)
 
 
 func init(){
@@ -35,13 +35,13 @@ func init(){
 		if err != nil {
 			log.Panicf("error parsing template %v.\nError details: %w", tp, err)
 		}
-		templates[filepath.Base(f)] = tp
+		cache[filepath.Base(f)] = tp
 	}
 
 }
 
 func RenderTemplate(w http.ResponseWriter, t string) {
-	tp, ok := templates[t]
+	tp, ok := cache[t]
 
 	if !ok {
 		log.Panicln("template", t, "was not found in cache!")
