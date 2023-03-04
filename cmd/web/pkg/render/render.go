@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/koleaby4/go-udemy-2/cmd/web/pkg/models"
 )
 
 var cache = make(map[string]*template.Template)
@@ -40,14 +42,24 @@ func init(){
 
 }
 
-func RenderTemplate(w http.ResponseWriter, t string) {
+
+
+func AddDefaultData(data *models.TemplateData) *models.TemplateData{
+	return data
+}
+
+
+func RenderTemplate(w http.ResponseWriter, t string, data *models.TemplateData) {
 	tp, ok := cache[t]
 
 	if !ok {
 		log.Panicln("template", t, "was not found in cache!")
 	}
 
-	err := tp.Execute(w, nil)
+	data = AddDefaultData(data)
+
+	err := tp.Execute(w, data)
+
 	if err != nil {
 		log.Panicf("error while executing template %v. \nError details: %w", tp, err)
 	}
